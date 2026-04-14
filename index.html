@@ -807,8 +807,8 @@
 
   .salience-row {
     display: grid;
-    grid-template-columns: 180px 1fr 48px;
-    gap: 12px;
+    grid-template-columns: 180px 1fr 52px;
+    gap: 12px 16px;
     align-items: center;
   }
 
@@ -853,15 +853,13 @@
 
   .salience-ghost-label {
     position: absolute;
-    right: -8px;
-    top: 50%;
-    transform: translate(100%, -50%);
+    left: 0;
+    bottom: calc(100% + 4px);
     font-family: 'JetBrains Mono', monospace;
     font-size: 8px;
     color: var(--red);
     letter-spacing: 1px;
     white-space: nowrap;
-    padding-left: 6px;
   }
 
   .salience-pct {
@@ -1781,7 +1779,7 @@
 
     <div class="dial-container reveal">
       <div class="dial-wrapper">
-        <canvas id="dialCanvas" width="480" height="280"></canvas>
+        <canvas id="dialCanvas" width="520" height="310"></canvas>
       </div>
 
       <div class="dial-legend" style="width: min(480px, 90vw);">
@@ -2441,141 +2439,137 @@ function drawDial() {
   const canvas = document.getElementById('dialCanvas');
   if (!canvas) return;
   const dpr = window.devicePixelRatio || 1;
-  const W = 480, H = 280;
+  // Wider canvas with more vertical room for labels
+  const W = 520, H = 310;
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  const cx = W / 2, cy = H - 40;
-  const R = 200;
-  const startAngle = Math.PI; // 180°
-  const endAngle = 0;         // 0° (full semicircle)
+  // Centre slightly right to give left labels breathing room
+  const cx = W / 2 + 10, cy = H - 50;
+  const R = 195;
 
   // Background arc
   ctx.beginPath();
-  ctx.arc(cx, cy, R, startAngle, endAngle);
-  ctx.lineWidth = 32;
+  ctx.arc(cx, cy, R, Math.PI, 0);
+  ctx.lineWidth = 28;
   ctx.strokeStyle = 'rgba(20,18,14,0.06)';
   ctx.stroke();
 
-  // Helper to convert % (0-100) to angle
   function pctToAngle(pct) {
     return Math.PI - (pct / 100) * Math.PI;
   }
 
   // ZONES
   const zones = [
-    { from: 0, to: 22, color: 'rgba(176,20,20,0.15)', label: null },
-    { from: 22, to: 23, color: 'rgba(176,20,20,0.3)', label: null },
-    // Signal band: 23-31
-    { from: 23, to: 31, color: '#1a5c2e', label: '23–31% SIGNAL' },
-    // Conditional: 31-37
-    { from: 31, to: 37, color: '#7a4a00', label: null },
-    // Noise: 37-50
-    { from: 37, to: 50, color: 'rgba(176,20,20,0.7)', label: null },
-    { from: 50, to: 100, color: 'rgba(176,20,20,0.15)', label: null },
+    { from: 0,  to: 23,  color: 'rgba(176,20,20,0.12)' },
+    { from: 23, to: 31,  color: '#1a5c2e' },
+    { from: 31, to: 37,  color: '#7a4a00' },
+    { from: 37, to: 50,  color: 'rgba(176,20,20,0.65)' },
+    { from: 50, to: 100, color: 'rgba(176,20,20,0.10)' },
   ];
 
   zones.forEach(z => {
     ctx.beginPath();
     ctx.arc(cx, cy, R, pctToAngle(z.to), pctToAngle(z.from));
-    ctx.lineWidth = 32;
+    ctx.lineWidth = 28;
     ctx.strokeStyle = z.color;
     ctx.stroke();
   });
 
   // TICK MARKS
-  const ticks = [0, 10, 20, 23, 27, 30, 31, 35, 37, 42, 47, 50];
+  const ticks = [0, 10, 20, 23, 27, 30, 31, 37, 42, 47, 50];
   ticks.forEach(t => {
     const angle = pctToAngle(t);
     const isMajor = [0, 10, 20, 30, 40, 50].includes(t);
-    const inner = R - (isMajor ? 28 : 20);
-    const outer = R + 8;
+    const inner = R - (isMajor ? 24 : 16);
+    const outer = R + 6;
     ctx.beginPath();
     ctx.moveTo(cx + inner * Math.cos(angle), cy - inner * Math.sin(angle));
     ctx.lineTo(cx + outer * Math.cos(angle), cy - outer * Math.sin(angle));
-    ctx.lineWidth = isMajor ? 2 : 1;
-    ctx.strokeStyle = 'rgba(20,18,14,0.4)';
+    ctx.lineWidth = isMajor ? 1.5 : 1;
+    ctx.strokeStyle = 'rgba(20,18,14,0.35)';
     ctx.stroke();
 
-    // Label major ticks
     if (isMajor) {
-      const labelR = R + 24;
+      const labelR = R + 22;
       const lx = cx + labelR * Math.cos(angle);
       const ly = cy - labelR * Math.sin(angle);
-      ctx.fillStyle = 'rgba(20,18,14,0.5)';
-      ctx.font = `700 10px "JetBrains Mono", monospace`;
+      ctx.fillStyle = 'rgba(20,18,14,0.45)';
+      ctx.font = `700 9px "JetBrains Mono", monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(t + '%', lx, ly);
     }
   });
 
-  // DATA POINT NEEDLES
-  const dataPoints = [
-    { val: 23, color: '#1a5c2e', label: 'ThinkHQ' },
-    { val: 26, color: '#1a5c2e', label: 'Abacus' },
-    { val: 27, color: '#1a5c2e', label: 'Pollara' },
-    { val: 29, color: '#1a5c2e', label: 'Léger/AR/Ipsos' },
-    { val: 30, color: '#1a5c2e', label: 'Mainstreet' },
-    { val: 31, color: '#1a5c2e', label: 'Research Co.' },
-    { val: 42, color: '#b01414', label: 'Pollara\nProjection' },
-    { val: 47, color: '#b01414', label: 'Léger\nSubsample' },
-  ];
+  // DATA DOTS on arc
+  const greenDots = [23, 26, 27, 29, 30, 31];
+  const redDots   = [42, 47];
 
-  dataPoints.forEach(dp => {
-    const angle = pctToAngle(dp.val);
-    const needleLen = R - 20;
-    const nx = cx + needleLen * Math.cos(angle);
-    const ny = cy - needleLen * Math.sin(angle);
-
-    // Dot on arc
+  greenDots.forEach(v => {
+    const angle = pctToAngle(v);
     ctx.beginPath();
     ctx.arc(cx + R * Math.cos(angle), cy - R * Math.sin(angle), 5, 0, Math.PI * 2);
-    ctx.fillStyle = dp.color;
+    ctx.fillStyle = '#1a5c2e';
     ctx.fill();
   });
 
-  // Labels for noise points
-  [
-    { val: 42, text: '42%', sub: 'Pollara projection' },
-    { val: 47, text: '47%', sub: 'Léger subsample\n(n=133)' },
-  ].forEach(dp => {
-    const angle = pctToAngle(dp.val);
-    const labelR = R - 55;
-    const lx = cx + labelR * Math.cos(angle);
-    const ly = cy - labelR * Math.sin(angle);
-
+  redDots.forEach(v => {
+    const angle = pctToAngle(v);
+    ctx.beginPath();
+    ctx.arc(cx + R * Math.cos(angle), cy - R * Math.sin(angle), 5, 0, Math.PI * 2);
     ctx.fillStyle = '#b01414';
-    ctx.font = `900 16px "Playfair Display", serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(dp.text, lx, ly - 8);
-
-    ctx.fillStyle = 'rgba(176,20,20,0.7)';
-    ctx.font = `400 8px "JetBrains Mono", monospace`;
-    ctx.fillText(dp.sub.split('\n')[0], lx, ly + 6);
-    if (dp.sub.includes('\n')) ctx.fillText(dp.sub.split('\n')[1], lx, ly + 16);
+    ctx.fill();
   });
 
-  // Signal band label
-  const sigMid = pctToAngle(27);
-  const sigR = R - 55;
+  // SIGNAL BAND LABEL — centred in band at 27%
+  const sigAngle = pctToAngle(27);
+  const sigR = R - 50;
+  const slx = cx + sigR * Math.cos(sigAngle);
+  const sly = cy - sigR * Math.sin(sigAngle);
   ctx.fillStyle = '#1a5c2e';
-  ctx.font = `700 11px "JetBrains Mono", monospace`;
+  ctx.font = `700 10px "JetBrains Mono", monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('SIGNAL', cx + sigR * Math.cos(sigMid), cy - sigR * Math.sin(sigMid) - 8);
+  ctx.fillText('SIGNAL', slx, sly - 7);
   ctx.font = `400 9px "JetBrains Mono", monospace`;
-  ctx.fillText('23–31%', cx + sigR * Math.cos(sigMid), cy - sigR * Math.sin(sigMid) + 6);
+  ctx.fillText('23–31%', slx, sly + 7);
 
-  // Center label
-  ctx.fillStyle = 'rgba(20,18,14,0.25)';
-  ctx.font = `400 9px "JetBrains Mono", monospace`;
+  // NOISE LABELS — staggered radii to prevent overlap
+  // 42% label: closer in
+  const a42 = pctToAngle(42);
+  const r42 = R - 62;
+  ctx.fillStyle = '#b01414';
+  ctx.font = `900 15px "Playfair Display", serif`;
   ctx.textAlign = 'center';
-  ctx.fillText('ALBERTA SEPARATISM · ALL SURVEYS', cx, cy - 20);
-  ctx.fillText('SEPT 2025 – APR 2026', cx, cy - 8);
+  ctx.textBaseline = 'middle';
+  ctx.fillText('42%', cx + r42 * Math.cos(a42), cy - r42 * Math.sin(a42) - 7);
+  ctx.font = `400 8px "JetBrains Mono", monospace`;
+  ctx.fillStyle = 'rgba(176,20,20,0.7)';
+  ctx.fillText('Pollara projection', cx + r42 * Math.cos(a42), cy - r42 * Math.sin(a42) + 7);
+
+  // 47% label: further out on a different radius
+  const a47 = pctToAngle(47);
+  const r47 = R - 38;
+  ctx.fillStyle = '#b01414';
+  ctx.font = `900 15px "Playfair Display", serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('47%', cx + r47 * Math.cos(a47), cy - r47 * Math.sin(a47) - 16);
+  ctx.font = `400 8px "JetBrains Mono", monospace`;
+  ctx.fillStyle = 'rgba(176,20,20,0.7)';
+  ctx.fillText('Léger subsample', cx + r47 * Math.cos(a47), cy - r47 * Math.sin(a47) - 4);
+  ctx.fillText('(n=133)', cx + r47 * Math.cos(a47), cy - r47 * Math.sin(a47) + 6);
+
+  // CENTRE LABEL
+  ctx.fillStyle = 'rgba(20,18,14,0.22)';
+  ctx.font = `400 8px "JetBrains Mono", monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ALBERTA SEPARATISM · ALL SURVEYS', cx, cy - 18);
+  ctx.fillText('SEPT 2025 – APR 2026', cx, cy - 6);
 }
 
 drawDial();
@@ -2904,4 +2898,4 @@ document.addEventListener('click', (e) => {
 
 </script>
 </body>
-</html> 
+</html>
